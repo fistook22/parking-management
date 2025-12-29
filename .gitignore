@@ -1,0 +1,20 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Optional: Uncomment if you want to keep Firebase config private
+# (But note: Firebase config is meant to be public, protected by domain restrictions)
+# firebase-config.js
+

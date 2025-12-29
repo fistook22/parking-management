@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Parking Management System - Track and manage parking slots">
+    <title>Parking Management</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2c3e50">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚗 Parking Management</h1>
+            <div class="date-display" id="dateDisplay"></div>
+        </header>
+
+        <div class="controls">
+            <button class="btn-reset" id="resetBtn">Reset All (Today)</button>
+            <div class="legend">
+                <span class="legend-item"><span class="legend-color free"></span> Free</span>
+                <span class="legend-item"><span class="legend-color occupied"></span> Occupied</span>
+            </div>
+        </div>
+
+        <div class="floors-container" id="floorsContainer">
+            <!-- Floors will be dynamically generated -->
+        </div>
+
+        <footer>
+            <p>Tap a slot to toggle its status</p>
+            <p class="reset-info">Status resets daily at midnight</p>
+        </footer>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+
