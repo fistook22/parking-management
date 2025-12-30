@@ -356,12 +356,192 @@ function getSlotStatus(floor, slotNumber, isAssigned) {
     return isAssigned ? 'occupied' : 'free';
 }
 
-// Format floor name
+// Format floor name for display
 function formatFloor(floor) {
     if (floor > 0) {
         return `Floor ${floor}`;
     }
-    return `Floor ${floor}`;
+    return `Level ${floor}`;
+}
+
+// Open modal
+function openModal() {
+    const modal = document.getElementById('usageModal');
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        trackEvent('modal_opened');
+    }
+}
+
+// Close modal
+function closeModal() {
+    const modal = document.getElementById('usageModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+        trackEvent('modal_closed');
+    }
+}
+
+// Group double parking slots
+function groupDoubleParkingSlots(slots) {
+    const regular = [];
+    const doubleGroups = [];
+    const processed = new Set();
+    
+    slots.forEach(slot => {
+        if (processed.has(slot.number)) return;
+        
+        if (slot.isDouble && slot.pairNumber) {
+            const pair = slots.find(s => s.number === slot.pairNumber && !processed.has(s.number));
+            if (pair) {
+                doubleGroups.push([slot, pair]);
+                processed.add(slot.number);
+                processed.add(pair.number);
+            } else {
+                regular.push(slot);
+                processed.add(slot.number);
+            }
+        } else {
+            regular.push(slot);
+            processed.add(slot.number);
+        }
+    });
+    
+    return { regular, doubleGroups };
+}
+
+// Render floor filter chips
+function renderFloorFilters() {
+    const container = document.getElementById('floorFilters');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    const processedFloors = processParkingData();
+    const availableFloors = processedFloors.map(f => f.floor);
+    
+    // Order: 1, 2, 4, -1, -2, -3, -4
+    const floorOrder = [1, 2, 4, -1, -2, -3, -4];
+    const floors = floorOrder.filter(floor => availableFloors.includes(floor));
+    
+    // Add "All" chip
+    const allChip = document.createElement('button');
+    allChip.className = 'filter-chip active';
+    allChip.textContent = 'All';
+    allChip.dataset.floor = 'all';
+    allChip.addEventListener('click', () => filterFloors('all'));
+    container.appendChild(allChip);
+    
+    // Add floor chips in specified order
+    floors.forEach(floor => {
+        const chip = document.createElement('button');
+        chip.className = 'filter-chip';
+        chip.textContent = formatFloor(floor);
+        chip.dataset.floor = floor;
+        chip.addEventListener('click', () => filterFloors(floor));
+        container.appendChild(chip);
+    });
+}
+
+// Filter floors by selection
+function filterFloors(selectedFloor) {
+    // Update active chip
+    const chips = document.querySelectorAll('.filter-chip');
+    chips.forEach(chip => {
+        if (chip.dataset.floor === String(selectedFloor)) {
+            chip.classList.add('active');
+        } else {
+            chip.classList.remove('active');
+        }
+    });
+    
+    // Show/hide floor sections
+    const floorSections = document.querySelectorAll('.floor-section');
+    floorSections.forEach(section => {
+        const floorNumber = parseInt(section.dataset.floor);
+        if (selectedFloor === 'all' || floorNumber === selectedFloor) {
+            section.style.display = 'block';
+        } else {
+            section.style.display = 'none';
+        }
+    });
+    
+    trackEvent('floor_filtered', { floor: selectedFloor });
+}
+
+// Render floor divider
+function renderFloorDivider(floorNumber) {
+    const divider = document.createElement('div');
+    divider.className = 'floor-divider';
+    
+    const label = document.createElement('div');
+    label.className = 'floor-divider-label';
+    label.textContent = formatFloor(floorNumber);
+    
+    divider.appendChild(label);
+    return divider;
+}
+
+// Render status badge
+function renderStatusBadge(status) {
+    const badge = document.createElement('div');
+    badge.className = 'status-badge';
+    badge.textContent = status === 'free' ? 'Available' : 'Occupied';
+    return badge;
+}
+
+// Render parking slot card
+function renderParkingSlot(floor, slot, status) {
+    const slotElement = document.createElement('div');
+    slotElement.className = `parking-slot ${status}`;
+    
+    // Anonymize name for display (privacy)
+    const displayName = slot.name ? anonymizeName(slot.name) : null;
+    
+    // Create content wrapper for proper spacing
+    const contentWrapper = document.createElement('div');
+    contentWrapper.style.display = 'flex';
+    contentWrapper.style.flexDirection = 'column';
+    contentWrapper.style.alignItems = 'center';
+    contentWrapper.style.justifyContent = 'space-between';
+    contentWrapper.style.height = '100%';
+    contentWrapper.style.width = '100%';
+    
+    // Slot number (top)
+    const numberElement = document.createElement('div');
+    numberElement.className = 'slot-number';
+    numberElement.textContent = slot.number;
+    contentWrapper.appendChild(numberElement);
+    
+    // Status badge (middle)
+    const badge = renderStatusBadge(status);
+    contentWrapper.appendChild(badge);
+    
+    // Name (bottom, if exists)
+    if (displayName) {
+        const nameElement = document.createElement('div');
+        nameElement.className = 'slot-name';
+        nameElement.textContent = displayName;
+        contentWrapper.appendChild(nameElement);
+    } else {
+        // Add spacer to maintain consistent height (same as slot-name min-height)
+        const spacer = document.createElement('div');
+        spacer.style.height = '16px';
+        spacer.style.minHeight = '16px';
+        spacer.style.flexShrink = '0';
+        contentWrapper.appendChild(spacer);
+    }
+    
+    slotElement.appendChild(contentWrapper);
+    
+    // Make all slots clickable
+    slotElement.addEventListener('click', () => {
+        toggleSlot(floor, slot.number);
+    });
+    
+    return slotElement;
 }
 
 // Render parking slots
@@ -374,109 +554,91 @@ function renderParking() {
     processedFloors.forEach(floor => {
         const floorSection = document.createElement('div');
         floorSection.className = 'floor-section';
+        floorSection.dataset.floor = floor.floor;
 
-        const floorHeader = document.createElement('div');
-        floorHeader.className = `floor-header ${floor.color}`;
-        floorHeader.textContent = formatFloor(floor.floor);
-        floorSection.appendChild(floorHeader);
+        // Add floor divider
+        const divider = renderFloorDivider(floor.floor);
+        floorSection.appendChild(divider);
 
-        const grid = document.createElement('div');
-        
-        // Check if floor has double parking slots
-        const hasDoubles = floor.slots.some(slot => slot.isDouble);
-        
-        // Floors 1, -1, 4: use 2-column layout (no doubles)
-        // Floors 2, -2, -3, -4: use 3-column layout with pairs
-        if (floor.floor === 1 || floor.floor === -1 || floor.floor === 4) {
-            grid.className = 'parking-grid parking-grid-standard';
-        } else if (floor.floor === 2 || floor.floor === -2 || floor.floor === -3 || floor.floor === -4) {
-            grid.className = 'parking-grid parking-grid-doubles';
-        } else {
-            grid.className = 'parking-grid parking-grid-standard';
-        }
-
-        // Custom arrangement for specific floors
+        // Custom arrangement for specific floors (preserve existing logic)
         let sortedSlots = [...floor.slots];
         
         if (floor.floor === 2) {
-            // Floor 2: 1 above 2, 3 above 4, 5 above 6
+            // Floor 2: Simple sort, pairs will be grouped and arranged side by side
             sortedSlots.sort((a, b) => a.number - b.number);
-            const pairs = [];
-            const processed = new Set();
-            
-            sortedSlots.forEach(slot => {
-                if (processed.has(slot.number)) return;
-                if (slot.isDouble && slot.pairNumber) {
-                    const pair = sortedSlots.find(s => s.number === slot.pairNumber);
-                    if (pair) {
-                        const lower = slot.number < slot.pairNumber ? slot : pair;
-                        const higher = slot.number < slot.pairNumber ? pair : slot;
-                        pairs.push([lower, higher]);
-                        processed.add(slot.number);
-                        processed.add(slot.pairNumber);
-                    }
-                }
-            });
-            
-            pairs.sort((a, b) => a[0].number - b[0].number);
-            sortedSlots = [];
-            pairs.forEach(pair => sortedSlots.push(pair[0]));
-            pairs.forEach(pair => sortedSlots.push(pair[1]));
         } else if (floor.floor === -2) {
-            // Floor -2: 29 above 30, 31 above 308, 350 above 351
             const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
             sortedSlots = [
-                slotMap.get(29), slotMap.get(31), slotMap.get(350),  // Top row
-                slotMap.get(30), slotMap.get(308), slotMap.get(351)   // Bottom row
+                slotMap.get(29), slotMap.get(31), slotMap.get(350),
+                slotMap.get(30), slotMap.get(308), slotMap.get(351)
             ].filter(Boolean);
         } else if (floor.floor === -3) {
-            // Floor -3: 47 above 48, 49 above 335, 338 above 337, 336 above 339
             const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
             sortedSlots = [
-                slotMap.get(47), slotMap.get(49), slotMap.get(338), slotMap.get(336),  // Top row
-                slotMap.get(48), slotMap.get(335), slotMap.get(337), slotMap.get(339)  // Bottom row
+                slotMap.get(47), slotMap.get(49), slotMap.get(338), slotMap.get(336),
+                slotMap.get(48), slotMap.get(335), slotMap.get(337), slotMap.get(339)
             ].filter(Boolean);
         } else if (floor.floor === -4) {
-            // Floor -4: 238 above 239, rest chronologically (19, 240, 241, 242, 243)
-            // With 3 columns: Column 1: 238,239 | Column 2: 19,240 | Column 3: 241,242 | 243 alone
             const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
             const rest = [19, 240, 241, 242, 243].map(n => slotMap.get(n)).filter(Boolean);
             sortedSlots = [
-                slotMap.get(238), rest[0], rest[2],  // Top row: 238, 19, 241
-                slotMap.get(239), rest[1], rest[3],  // Middle row: 239, 240, 242
-                rest[4]                               // Bottom row: 243
+                slotMap.get(238), rest[0], rest[2],
+                slotMap.get(239), rest[1], rest[3],
+                rest[4]
             ].filter(Boolean);
-        } else if (floor.floor === 1 || floor.floor === -1 || floor.floor === 4) {
-            // Floors 1, -1, 4: standard sort
-            sortedSlots.sort((a, b) => a.number - b.number);
         } else {
-            // Default: sort by number
             sortedSlots.sort((a, b) => a.number - b.number);
         }
 
-        sortedSlots.forEach(slot => {
-            const slotElement = document.createElement('div');
-            const status = getSlotStatus(floor.floor, slot.number, slot.assigned);
-            
-            slotElement.className = `parking-slot ${status}`;
-            
-            // Show double parking indicator if applicable
-            const doubleIndicator = slot.isDouble ? ' (Double)' : '';
-            
-            // Anonymize name for display (privacy)
-            const displayName = slot.name ? anonymizeName(slot.name) : null;
-            
-            slotElement.innerHTML = `
-                <div class="slot-number">${slot.number}${doubleIndicator}</div>
-                ${displayName ? `<div class="slot-name">${displayName}</div>` : ''}
-                ${slot.notes ? `<div class="slot-notes">${slot.notes}</div>` : ''}
-            `;
+        // Group slots: regular and double parking
+        const { regular, doubleGroups } = groupDoubleParkingSlots(sortedSlots);
 
-            // Make all slots clickable (including assigned ones)
-            slotElement.addEventListener('click', () => {
-                toggleSlot(floor.floor, slot.number);
+        // Create grid container
+        const grid = document.createElement('div');
+        
+        // Determine grid layout
+        if (floor.floor === 1 || floor.floor === -1 || floor.floor === 4) {
+            grid.className = 'parking-grid parking-grid-standard';
+        } else {
+            grid.className = 'parking-grid parking-grid-doubles';
+        }
+
+        // For floors with doubles layout, render double parking groups first
+        // They will span 2 columns and align at the top
+        if (floor.floor === 2 || floor.floor === -2 || floor.floor === -3 || floor.floor === -4) {
+            doubleGroups.forEach(group => {
+                const container = document.createElement('div');
+                container.className = 'double-parking-group';
+                
+                // Floor 2: span 1 column (all pairs in one row)
+                // Other floors: span 2 columns (pairs on left, regular slots on right)
+                if (floor.floor === 2) {
+                    container.classList.add('double-parking-floor2');
+                }
+                
+                const label = document.createElement('div');
+                label.className = 'double-parking-label';
+                label.textContent = 'Double Parking';
+                container.appendChild(label);
+                
+                const slotsContainer = document.createElement('div');
+                slotsContainer.className = 'double-parking-slots';
+                
+                group.forEach(slot => {
+                    const status = getSlotStatus(floor.floor, slot.number, slot.assigned);
+                    const slotElement = renderParkingSlot(floor.floor, slot, status);
+                    slotsContainer.appendChild(slotElement);
+                });
+                
+                container.appendChild(slotsContainer);
+                grid.appendChild(container);
             });
+        }
 
+        // Render regular slots
+        regular.forEach(slot => {
+            const status = getSlotStatus(floor.floor, slot.number, slot.assigned);
+            const slotElement = renderParkingSlot(floor.floor, slot, status);
             grid.appendChild(slotElement);
         });
 
@@ -516,42 +678,16 @@ function checkDailyReset() {
     }
 }
 
-// Toggle guidelines visibility
-function toggleGuidelines() {
-    const guidelines = document.getElementById('guidelines');
-    
-    const wasExpanded = guidelines.classList.contains('guidelines-expanded');
-    
-    if (wasExpanded) {
-        guidelines.classList.remove('guidelines-expanded');
-        guidelines.classList.add('guidelines-collapsed');
-    } else {
-        guidelines.classList.remove('guidelines-collapsed');
-        guidelines.classList.add('guidelines-expanded');
-    }
-    
-    // Track analytics
-    trackEvent('guidelines_toggled', {
-        action: wasExpanded ? 'closed' : 'opened'
-    });
-}
-
 // Initialize app
 function init() {
     updateDateDisplay();
     
-    // Check first visit and track
+    // Check first visit and open modal
     if (isFirstVisit()) {
         trackEvent('first_visit');
         markAsVisited();
-        // Guidelines stay open (default expanded state)
-    } else {
-        // Close guidelines for returning users
-        const guidelines = document.getElementById('guidelines');
-        if (guidelines) {
-            guidelines.classList.remove('guidelines-expanded');
-            guidelines.classList.add('guidelines-collapsed');
-        }
+        // Open modal on first visit
+        setTimeout(() => openModal(), 300);
     }
     
     // Track app load
@@ -563,14 +699,31 @@ function init() {
     // Initialize status (this will also trigger initial render)
     initializeStatus();
     
-    // Set up reset button
-    document.getElementById('resetBtn').addEventListener('click', resetAll);
+    // Render floor filters
+    renderFloorFilters();
     
-    // Set up guidelines toggle
-    const guidelinesToggle = document.getElementById('guidelinesToggle');
-    if (guidelinesToggle) {
-        guidelinesToggle.addEventListener('click', toggleGuidelines);
+    // Set up modal handlers
+    const infoIcon = document.getElementById('infoIcon');
+    if (infoIcon) {
+        infoIcon.addEventListener('click', openModal);
     }
+    
+    const modalClose = document.getElementById('modalClose');
+    if (modalClose) {
+        modalClose.addEventListener('click', closeModal);
+    }
+    
+    const modalOverlay = document.getElementById('modalOverlay');
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', closeModal);
+    }
+    
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    });
     
     // Check for daily reset every minute
     setInterval(checkDailyReset, 60000);

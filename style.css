@@ -5,22 +5,24 @@
 }
 
 :root {
-    --color-free: #27ae60;
-    --color-occupied: #e74c3c;
-    --color-assigned: #3498db;
-    --color-bg: #ecf0f1;
-    --color-text: #2c3e50;
+    --color-free: #10b981;
+    --color-occupied: #ef4444;
+    --color-bg: #f8fafc;
+    --color-text: #1e293b;
     --color-card: #ffffff;
-    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --color-border: #e2e8f0;
+    --color-divider: #cbd5e1;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-hover: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+    --shadow-card: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background: var(--color-bg);
     color: var(--color-text);
     line-height: 1.6;
-    padding: 10px;
+    padding: 12px;
     min-height: 100vh;
 }
 
@@ -29,201 +31,265 @@ body {
     margin: 0 auto;
 }
 
+/* Header Styles */
 header {
     background: var(--color-card);
     padding: 20px;
-    border-radius: 12px;
-    box-shadow: var(--shadow);
+    border-radius: 16px;
+    box-shadow: var(--shadow-card);
     margin-bottom: 20px;
-    text-align: center;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
 }
 
 header h1 {
     font-size: 24px;
-    margin-bottom: 8px;
     color: var(--color-text);
+    font-weight: 700;
+    margin: 0;
+}
+
+.info-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--color-border);
+    background: var(--color-card);
+    color: var(--color-text);
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.info-icon:hover {
+    background: var(--color-bg);
+    border-color: var(--color-text);
+    transform: scale(1.05);
+}
+
+.info-icon:active {
+    transform: scale(0.95);
 }
 
 .date-display {
     font-size: 14px;
-    color: #7f8c8d;
+    color: #64748b;
     font-weight: 500;
-    margin-bottom: 15px;
 }
 
-.guidelines {
-    margin-top: 15px;
+/* Floor Filter Chips */
+.floor-filters {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 4px;
+    margin-bottom: 20px;
+}
+
+.filter-chip {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 2px solid var(--color-border);
+    background: var(--color-card);
+    color: var(--color-text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.filter-chip:hover {
+    border-color: var(--color-text);
+    background: var(--color-bg);
+}
+
+.filter-chip.active {
+    background: var(--color-text);
+    color: var(--color-card);
+    border-color: var(--color-text);
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    max-width: 100%;
+    height: 100%;
+    z-index: 1000;
 }
 
-.guidelines-header {
+.modal.active {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 6px;
-    transition: background 0.3s;
-    user-select: none;
 }
 
-.guidelines-header:hover {
-    background: rgba(0, 0, 0, 0.05);
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
 }
 
-.guidelines-icon {
+.modal-content {
+    position: relative;
+    background: var(--color-card);
+    border-radius: 16px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: slideUp 0.3s ease;
+    z-index: 1001;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.modal-header h2 {
     font-size: 20px;
-    transition: transform 0.3s;
-}
-
-.guidelines.guidelines-collapsed .guidelines-icon {
-    transform: rotate(180deg);
-}
-
-.guidelines-header h3 {
+    font-weight: 700;
+    color: var(--color-text);
     margin: 0;
-    font-size: 16px;
+}
+
+.modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: var(--color-bg);
     color: var(--color-text);
-    font-weight: 600;
+    font-size: 24px;
+    font-weight: 300;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
 }
 
-.guidelines-content {
-    line-height: 1.7;
-    margin-top: 12px;
-    max-height: 800px;
-    overflow: hidden;
-    transition: max-height 0.4s ease-out, margin 0.4s ease-out, opacity 0.3s ease-out;
-    opacity: 1;
-    padding: 0 10px;
+.modal-close:hover {
+    background: var(--color-border);
+    transform: scale(1.1);
 }
 
-.guidelines.guidelines-collapsed .guidelines-content {
-    max-height: 0;
-    margin-top: 0;
-    margin-bottom: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    opacity: 0;
-}
-
-.guidelines-content p {
-    margin-bottom: 12px;
-    color: var(--color-text);
-    font-size: 13px;
+.modal-body {
+    padding: 20px;
     text-align: right;
 }
 
-.guidelines-content p strong {
+.modal-body p {
+    margin-bottom: 16px;
     color: var(--color-text);
-    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.7;
 }
 
-.guidelines-footer {
-    margin-top: 15px;
-    padding-top: 12px;
-    border-top: 1px solid #e0e0e0;
+.modal-body p strong {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.modal-footer {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
     text-align: center;
     font-weight: 500;
     color: var(--color-text);
     font-size: 13px;
 }
 
-.controls {
-    background: var(--color-card);
-    padding: 15px 20px;
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    margin-bottom: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    align-items: center;
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-.btn-reset {
-    display: none;
-    background: #f39c12;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    box-shadow: var(--shadow);
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.btn-reset:hover {
-    background: #e67e22;
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-hover);
-}
-
-.btn-reset:active {
-    transform: translateY(0);
-}
-
-.legend {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-}
-
-.legend-color {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    display: inline-block;
-}
-
-.legend-color.free {
-    background: var(--color-free);
-}
-
-.legend-color.occupied {
-    background: var(--color-occupied);
-}
-
+/* Floor Sections */
 .floors-container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 24px;
 }
 
 .floor-section {
     background: var(--color-card);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
+    border-radius: 16px;
+    box-shadow: var(--shadow-card);
     overflow: hidden;
 }
 
-.floor-header {
-    padding: 15px 20px;
-    font-size: 18px;
-    font-weight: 700;
-    color: white;
-    text-align: center;
+/* Floor Divider */
+.floor-divider {
+    position: relative;
+    padding: 20px 0;
+    margin: 0 20px;
+    display: flex;
+    align-items: center;
 }
 
-.floor-1 { background: #b6b6b6; }
-.floor-2 { background: #b6b6b6; }
-.floor-4 { background: #b6b6b6; }
-.floor-neg1 { background: #b6b6b6; }
-.floor-neg2 { background: #b6b6b6; }
-.floor-neg3 { background: #b6b6b6; }
-.floor-neg4 { background: #b6b6b6; }
+.floor-divider::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--color-divider);
+}
 
+.floor-divider-label {
+    position: relative;
+    background: var(--color-card);
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--color-border);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0 auto;
+    white-space: nowrap;
+}
+
+/* Parking Grid */
 .parking-grid {
     display: grid;
     gap: 12px;
@@ -231,43 +297,90 @@ header h1 {
     max-width: 100%;
 }
 
-/* Standard layout: 2 columns, vertical flow (for floors 1, -1, 4) */
 .parking-grid-standard {
     grid-template-columns: repeat(2, 1fr);
     grid-auto-flow: column;
 }
 
-/* Doubles layout: 3 columns, 2 rows (for floors with double parking) */
 .parking-grid-doubles {
     grid-template-columns: repeat(3, 1fr);
     grid-auto-flow: row;
+    align-items: start;
 }
 
-/* For larger screens, standard layout can use 3 columns */
+.parking-grid-doubles .double-parking-group {
+    grid-column: 1;
+    grid-row: span 2;
+    min-height: calc(110px * 2 + 12px + 32px); /* 2 slots + gap + label height */
+}
+
+/* Floor 2: All pairs in one row (span 1 column) */
+.parking-grid-doubles .double-parking-group.double-parking-floor2 {
+    grid-column: span 1;
+    grid-row: span 1;
+    min-height: auto;
+}
+
 @media (min-width: 768px) {
     .parking-grid-standard {
         grid-template-columns: repeat(3, 1fr);
     }
 }
 
+/* Double Parking Container */
+.double-parking-group {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-self: start;
+    gap: 12px;
+}
+
+.double-parking-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #64748b;
+    text-align: left;
+    margin: 0;
+}
+
+.double-parking-slots {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.double-parking-slots .parking-slot {
+    height: 120px;
+    min-height: 120px;
+    max-height: 120px;
+}
+
+/* Parking Cards */
 .parking-slot {
     background: var(--color-free);
     color: white;
-    padding: 15px 10px;
-    border-radius: 8px;
+    padding: 12px 10px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
     text-align: center;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.2s ease;
     box-shadow: var(--shadow);
     font-weight: 600;
-    min-height: 80px;
+    height: 120px;
+    min-height: 120px;
+    max-height: 120px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
-    gap: 5px;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
 }
 
 .parking-slot:hover {
@@ -276,31 +389,51 @@ header h1 {
 }
 
 .parking-slot:active {
-    transform: scale(0.95);
+    transform: scale(0.98);
 }
 
 .parking-slot.free {
     background: var(--color-free);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 .parking-slot.occupied {
     background: var(--color-occupied);
-}
-
-.parking-slot.assigned {
-    background: var(--color-free);
-    cursor: pointer;
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 .slot-number {
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 700;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    flex-shrink: 0;
+}
+
+.status-badge {
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(4px);
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .slot-name {
     font-size: 12px;
-    opacity: 0.9;
-    font-weight: 400;
+    opacity: 0.95;
+    font-weight: 500;
+    flex-shrink: 0;
+    line-height: 1.3;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-height: 16px;
 }
 
 .slot-notes {
@@ -310,92 +443,91 @@ header h1 {
     margin-top: 4px;
 }
 
-footer {
-    text-align: center;
-    padding: 20px;
-    color: #7f8c8d;
-    font-size: 14px;
-    margin-top: 30px;
-}
-
-.reset-info {
-    font-size: 12px;
-    margin-top: 8px;
-    opacity: 0.7;
-}
-
-/* Mobile optimizations */
+/* Mobile Optimizations */
 @media (max-width: 480px) {
     body {
         padding: 8px;
     }
 
+    header {
+        padding: 16px;
+    }
+
     header h1 {
         font-size: 20px;
     }
-    
-    .guidelines-header {
-        padding: 6px;
+
+    .info-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
     }
-    
-    .guidelines-header h3 {
-        font-size: 14px;
+
+    .modal-content {
+        width: 95%;
+        max-height: 85vh;
     }
-    
-    .guidelines-icon {
-        font-size: 18px;
-    }
-    
-    .guidelines-content {
-        padding: 0 5px;
-    }
-    
-    .guidelines-content p {
-        font-size: 12px;
-        margin-bottom: 10px;
+
+    .modal-header,
+    .modal-body {
+        padding: 16px;
     }
 
     .parking-grid-standard {
         grid-template-columns: repeat(2, 1fr);
-        grid-auto-flow: column;
         gap: 10px;
         padding: 15px;
     }
-    
+
     .parking-grid-doubles {
         grid-template-columns: repeat(3, 1fr);
-        grid-auto-flow: row;
         gap: 10px;
         padding: 15px;
     }
 
     .parking-slot {
-        min-height: 70px;
-        padding: 12px 8px;
+        height: 110px;
+        min-height: 110px;
+        max-height: 110px;
+        padding: 10px 8px;
     }
-
+    
+    .double-parking-slots .parking-slot {
+        height: 110px;
+        min-height: 110px;
+        max-height: 110px;
+    }
+    
     .slot-number {
-        font-size: 16px;
+        font-size: 20px;
     }
-
+    
+    .status-badge {
+        font-size: 10px;
+        padding: 2px 8px;
+    }
+    
     .slot-name {
         font-size: 11px;
+        min-height: 14px;
     }
 
-    .controls {
-        padding: 12px 15px;
-    }
-
-    .btn-reset {
-        padding: 10px 20px;
-        font-size: 14px;
+    .double-parking-slots {
+        grid-template-columns: 1fr;
     }
 }
 
 /* Touch-friendly */
 @media (hover: none) and (pointer: coarse) {
     .parking-slot {
-        min-height: 85px;
+        height: 120px;
+        min-height: 120px;
+        max-height: 120px;
+    }
+    
+    .double-parking-slots .parking-slot {
+        height: 120px;
+        min-height: 120px;
+        max-height: 120px;
     }
 }
-

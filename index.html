@@ -16,15 +16,30 @@
 <body>
     <div class="container">
         <header>
-            <h1>🚗 Parking Management</h1>
+            <div class="header-content">
+                <h1>🚗 Parking Management</h1>
+                <button class="info-icon" id="infoIcon" aria-label="Usage rules">ⓘ</button>
+            </div>
             <div class="date-display" id="dateDisplay"></div>
-            
-            <div class="guidelines guidelines-expanded" id="guidelines">
-                <div class="guidelines-header" id="guidelinesToggle">
-                    <span class="guidelines-icon">📋</span>
-                    <h3>כללי שימוש</h3>
+        </header>
+
+        <div class="floor-filters" id="floorFilters">
+            <!-- Filter chips will be dynamically generated -->
+        </div>
+
+        <div class="floors-container" id="floorsContainer">
+            <!-- Floors will be dynamically generated -->
+        </div>
+
+        <!-- Modal for usage rules -->
+        <div class="modal" id="usageModal">
+            <div class="modal-overlay" id="modalOverlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>כללי שימוש</h2>
+                    <button class="modal-close" id="modalClose" aria-label="Close">×</button>
                 </div>
-                <div class="guidelines-content">
+                <div class="modal-body">
                     <p><strong>🤝 אמון זה הכל</strong></p>
                     <p>האפליקציה מבוססת על אמון - כולם יכולים לשנות הכל. בואו נשמור על זה יחד! 💪</p>
                     
@@ -37,27 +52,10 @@
                     <p><strong>👀 עזרה הדדית</strong></p>
                     <p>ראיתם חניה פיזית שלא תואמת את הסטטוס באפליקציה? נא לעזור לכולם ולעדכן! אנחנו צוות, בואו נשמור על זה מעודכן. 🎯</p>
                     
-                    <p class="guidelines-footer">ביחד נהפוך את החיפוש אחר חניה לחוויה נעימה יותר! 🚀</p>
+                    <p class="modal-footer">ביחד נהפוך את החיפוש אחר חניה לחוויה נעימה יותר! 🚀</p>
                 </div>
             </div>
-        </header>
-
-        <div class="controls">
-            <button class="btn-reset" id="resetBtn">Reset All (Today)</button>
-            <div class="legend">
-                <span class="legend-item"><span class="legend-color free"></span> Free</span>
-                <span class="legend-item"><span class="legend-color occupied"></span> Occupied</span>
-            </div>
         </div>
-
-        <div class="floors-container" id="floorsContainer">
-            <!-- Floors will be dynamically generated -->
-        </div>
-
-        <footer>
-            <p>Tap a slot to toggle its status</p>
-            <p class="reset-info">Status resets daily at midnight</p>
-        </footer>
     </div>
 
     <script src="firebase-config.js"></script>
