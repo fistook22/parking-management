@@ -567,16 +567,20 @@ function renderParking() {
             // Floor 2: Simple sort, pairs will be grouped and arranged side by side
             sortedSlots.sort((a, b) => a.number - b.number);
         } else if (floor.floor === -2) {
+            // Floor -2: 29 above 30, 31 above 308, 350 above 351
+            // Arrange: Double parking (350-351) on left, then 29-30, 31-308
             const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
             sortedSlots = [
-                slotMap.get(29), slotMap.get(31), slotMap.get(350),
-                slotMap.get(30), slotMap.get(308), slotMap.get(351)
+                slotMap.get(350), slotMap.get(29), slotMap.get(31),  // Top row
+                slotMap.get(351), slotMap.get(30), slotMap.get(308)   // Bottom row
             ].filter(Boolean);
         } else if (floor.floor === -3) {
+            // Floor -3: 47 above 48, 49 above 335, 338 above 337, 336 above 339
+            // Arrange: Double parking (336-337) on left, then 47-48, 49-335, 338-339
             const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
             sortedSlots = [
-                slotMap.get(47), slotMap.get(49), slotMap.get(338), slotMap.get(336),
-                slotMap.get(48), slotMap.get(335), slotMap.get(337), slotMap.get(339)
+                slotMap.get(336), slotMap.get(47), slotMap.get(49), slotMap.get(338), // Top row
+                slotMap.get(337), slotMap.get(48), slotMap.get(335), slotMap.get(339)  // Bottom row
             ].filter(Boolean);
         } else if (floor.floor === -4) {
             const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
