@@ -19,12 +19,27 @@ const firebaseConfig = {
 
 // Initialize Firebase
 let database;
+let analytics;
 try {
     firebase.initializeApp(firebaseConfig);
     database = firebase.database();
+    analytics = firebase.analytics();
     console.log('Firebase initialized successfully');
+    console.log('Analytics initialized');
+    
+    // Enable DebugView for localhost testing
+    // This allows you to see events in real-time in Firebase Console
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // For web, DebugView is enabled via URL parameter or browser extension
+        // We'll log events to console for immediate feedback
+        console.log('🔍 Debug mode: Events will be logged to console');
+        console.log('📊 To see events in Firebase Console DebugView:');
+        console.log('   1. Open Firebase Console → Analytics → DebugView');
+        console.log('   2. Or install "Firebase Analytics Debugger" Chrome extension');
+    }
 } catch (error) {
     console.warn('Firebase initialization failed, using localStorage fallback:', error);
     database = undefined;
+    analytics = undefined;
 }
 

@@ -236,6 +236,43 @@ function initializeStatus() {
     });
 }
 
+// Check if this is user's first visit
+function isFirstVisit() {
+    return !localStorage.getItem('has_visited_parking_app');
+}
+
+// Mark user as visited
+function markAsVisited() {
+    localStorage.setItem('has_visited_parking_app', 'true');
+}
+
+// Anonymize name: "Tal Gozlan" -> "Tal G."
+function anonymizeName(fullName) {
+    if (!fullName) return null;
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length === 0) return null;
+    if (parts.length === 1) return parts[0];
+    const firstName = parts[0];
+    const lastInitial = parts[parts.length - 1].charAt(0).toUpperCase();
+    return `${firstName} ${lastInitial}.`;
+}
+
+// Track analytics event (with error handling)
+function trackEvent(eventName, params = {}) {
+    // Always log to console for immediate feedback during development
+    console.log(`📊 Analytics Event: ${eventName}`, params);
+    
+    if (typeof analytics !== 'undefined') {
+        try {
+            analytics.logEvent(eventName, params);
+        } catch (error) {
+            console.warn('Analytics tracking failed:', error);
+        }
+    } else {
+        console.warn('Analytics not available (Firebase not initialized)');
+    }
+}
+
 // Toggle slot status
 function toggleSlot(floor, slotNumber) {
     const slotKey = `${floor}_${slotNumber}`;
@@ -246,6 +283,8 @@ function toggleSlot(floor, slotNumber) {
             status[slotKey] = 'free';
         }
         
+        const oldStatus = status[slotKey];
+        
         // Toggle between free and occupied (assigned slots can also be toggled)
         if (status[slotKey] === 'free' || status[slotKey] === 'assigned') {
             status[slotKey] = 'occupied';
@@ -253,6 +292,23 @@ function toggleSlot(floor, slotNumber) {
             // When freed, always become green (free), regardless of original assignment
             status[slotKey] = 'free';
         }
+        
+        // Get slot info for analytics
+        const processedFloors = processParkingData();
+        const slot = processedFloors
+            .find(f => f.floor === floor)
+            ?.slots.find(s => s.number === slotNumber);
+        
+        // Track analytics with anonymized name
+        const assignedTo = slot?.name ? anonymizeName(slot.name) : null;
+        trackEvent('slot_toggled', {
+            floor: floor,
+            slot_number: slotNumber,
+            old_status: oldStatus,
+            new_status: status[slotKey],
+            is_assigned: slot?.assigned || false,
+            assigned_to: assignedTo
+        });
         
         saveStatus(status);
         // renderParking() will be called automatically by real-time listener if Firebase is active
@@ -461,18 +517,42 @@ function checkDailyReset() {
 function toggleGuidelines() {
     const guidelines = document.getElementById('guidelines');
     
-    if (guidelines.classList.contains('guidelines-expanded')) {
+    const wasExpanded = guidelines.classList.contains('guidelines-expanded');
+    
+    if (wasExpanded) {
         guidelines.classList.remove('guidelines-expanded');
         guidelines.classList.add('guidelines-collapsed');
     } else {
         guidelines.classList.remove('guidelines-collapsed');
         guidelines.classList.add('guidelines-expanded');
     }
+    
+    // Track analytics
+    trackEvent('guidelines_toggled', {
+        action: wasExpanded ? 'closed' : 'opened'
+    });
 }
 
 // Initialize app
 function init() {
     updateDateDisplay();
+    
+    // Check first visit and track
+    if (isFirstVisit()) {
+        trackEvent('first_visit');
+        markAsVisited();
+        // Guidelines stay open (default expanded state)
+    } else {
+        // Close guidelines for returning users
+        const guidelines = document.getElementById('guidelines');
+        if (guidelines) {
+            guidelines.classList.remove('guidelines-expanded');
+            guidelines.classList.add('guidelines-collapsed');
+        }
+    }
+    
+    // Track app load
+    trackEvent('app_loaded');
     
     // Setup real-time listener first (if Firebase is available)
     setupRealtimeListener();
