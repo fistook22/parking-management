@@ -314,6 +314,13 @@ header h1 {
     min-height: calc(110px * 2 + 12px + 32px); /* 2 slots + gap + label height */
 }
 
+/* Floor 2: All pairs in one row (span 1 column) */
+.parking-grid-doubles .double-parking-group.double-parking-floor2 {
+    grid-column: span 1;
+    grid-row: span 1;
+    min-height: auto;
+}
+
 @media (min-width: 768px) {
     .parking-grid-standard {
         grid-template-columns: repeat(3, 1fr);
@@ -347,7 +354,9 @@ header h1 {
 }
 
 .double-parking-slots .parking-slot {
-    height: 110px;
+    height: 120px;
+    min-height: 120px;
+    max-height: 120px;
 }
 
 /* Parking Cards */
@@ -362,7 +371,9 @@ header h1 {
     transition: all 0.2s ease;
     box-shadow: var(--shadow);
     font-weight: 600;
-    height: 110px;
+    height: 120px;
+    min-height: 120px;
+    max-height: 120px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -422,6 +433,7 @@ header h1 {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-height: 16px;
 }
 
 .slot-notes {
@@ -474,8 +486,16 @@ header h1 {
     }
 
     .parking-slot {
-        height: 100px;
+        height: 110px;
+        min-height: 110px;
+        max-height: 110px;
         padding: 10px 8px;
+    }
+    
+    .double-parking-slots .parking-slot {
+        height: 110px;
+        min-height: 110px;
+        max-height: 110px;
     }
     
     .slot-number {
@@ -489,19 +509,7 @@ header h1 {
     
     .slot-name {
         font-size: 11px;
-    }
-
-    .slot-number {
-        font-size: 20px;
-    }
-
-    .status-badge {
-        font-size: 11px;
-        padding: 3px 10px;
-    }
-
-    .slot-name {
-        font-size: 12px;
+        min-height: 14px;
     }
 
     .double-parking-slots {
@@ -512,6 +520,14 @@ header h1 {
 /* Touch-friendly */
 @media (hover: none) and (pointer: coarse) {
     .parking-slot {
-        height: 110px;
+        height: 120px;
+        min-height: 120px;
+        max-height: 120px;
+    }
+    
+    .double-parking-slots .parking-slot {
+        height: 120px;
+        min-height: 120px;
+        max-height: 120px;
     }
 }

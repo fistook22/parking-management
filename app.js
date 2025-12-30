@@ -526,9 +526,10 @@ function renderParkingSlot(floor, slot, status) {
         nameElement.textContent = displayName;
         contentWrapper.appendChild(nameElement);
     } else {
-        // Add spacer to maintain consistent height
+        // Add spacer to maintain consistent height (same as slot-name min-height)
         const spacer = document.createElement('div');
         spacer.style.height = '16px';
+        spacer.style.minHeight = '16px';
         spacer.style.flexShrink = '0';
         contentWrapper.appendChild(spacer);
     }
@@ -563,7 +564,7 @@ function renderParking() {
         let sortedSlots = [...floor.slots];
         
         if (floor.floor === 2) {
-            // Floor 2: simple sort, let grouping handle the arrangement
+            // Floor 2: Simple sort, pairs will be grouped and arranged side by side
             sortedSlots.sort((a, b) => a.number - b.number);
         } else if (floor.floor === -2) {
             const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
@@ -608,6 +609,12 @@ function renderParking() {
             doubleGroups.forEach(group => {
                 const container = document.createElement('div');
                 container.className = 'double-parking-group';
+                
+                // Floor 2: span 1 column (all pairs in one row)
+                // Other floors: span 2 columns (pairs on left, regular slots on right)
+                if (floor.floor === 2) {
+                    container.classList.add('double-parking-floor2');
+                }
                 
                 const label = document.createElement('div');
                 label.className = 'double-parking-label';
