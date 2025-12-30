@@ -220,8 +220,8 @@ function initializeStatus() {
             floor.slots.forEach(slot => {
                 const slotKey = `${floor.floor}_${slot.number}`;
                 if (status[slotKey] === undefined) {
-                    // Initialize as 'free' for non-assigned, 'assigned' for assigned
-                    status[slotKey] = slot.assigned ? 'assigned' : 'free';
+                    // Initialize as 'free' for non-assigned, 'occupied' for assigned
+                    status[slotKey] = slot.assigned ? 'occupied' : 'free';
                     changed = true;
                 }
             });
@@ -278,7 +278,7 @@ function resetAll() {
             processedFloors.forEach(floor => {
                 floor.slots.forEach(slot => {
                     const slotKey = `${floor.floor}_${slot.number}`;
-                    status[slotKey] = slot.assigned ? 'assigned' : 'free';
+                    status[slotKey] = slot.assigned ? 'occupied' : 'free';
                 });
             });
             
@@ -301,8 +301,8 @@ function getSlotStatus(floor, slotNumber, isAssigned) {
         return status[slotKey];
     }
     
-    // Otherwise, default based on assignment
-    return isAssigned ? 'assigned' : 'free';
+    // Otherwise, default based on assignment (assigned slots default to occupied)
+    return isAssigned ? 'occupied' : 'free';
 }
 
 // Format floor name
@@ -330,9 +330,80 @@ function renderParking() {
         floorSection.appendChild(floorHeader);
 
         const grid = document.createElement('div');
-        grid.className = 'parking-grid';
+        
+        // Check if floor has double parking slots
+        const hasDoubles = floor.slots.some(slot => slot.isDouble);
+        
+        // Floors 1, -1, 4: use 2-column layout (no doubles)
+        // Floors 2, -2, -3, -4: use 3-column layout with pairs
+        if (floor.floor === 1 || floor.floor === -1 || floor.floor === 4) {
+            grid.className = 'parking-grid parking-grid-standard';
+        } else if (floor.floor === 2 || floor.floor === -2 || floor.floor === -3 || floor.floor === -4) {
+            grid.className = 'parking-grid parking-grid-doubles';
+        } else {
+            grid.className = 'parking-grid parking-grid-standard';
+        }
 
-        floor.slots.forEach(slot => {
+        // Custom arrangement for specific floors
+        let sortedSlots = [...floor.slots];
+        
+        if (floor.floor === 2) {
+            // Floor 2: 1 above 2, 3 above 4, 5 above 6
+            sortedSlots.sort((a, b) => a.number - b.number);
+            const pairs = [];
+            const processed = new Set();
+            
+            sortedSlots.forEach(slot => {
+                if (processed.has(slot.number)) return;
+                if (slot.isDouble && slot.pairNumber) {
+                    const pair = sortedSlots.find(s => s.number === slot.pairNumber);
+                    if (pair) {
+                        const lower = slot.number < slot.pairNumber ? slot : pair;
+                        const higher = slot.number < slot.pairNumber ? pair : slot;
+                        pairs.push([lower, higher]);
+                        processed.add(slot.number);
+                        processed.add(slot.pairNumber);
+                    }
+                }
+            });
+            
+            pairs.sort((a, b) => a[0].number - b[0].number);
+            sortedSlots = [];
+            pairs.forEach(pair => sortedSlots.push(pair[0]));
+            pairs.forEach(pair => sortedSlots.push(pair[1]));
+        } else if (floor.floor === -2) {
+            // Floor -2: 29 above 30, 31 above 308, 350 above 351
+            const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
+            sortedSlots = [
+                slotMap.get(29), slotMap.get(31), slotMap.get(350),  // Top row
+                slotMap.get(30), slotMap.get(308), slotMap.get(351)   // Bottom row
+            ].filter(Boolean);
+        } else if (floor.floor === -3) {
+            // Floor -3: 47 above 48, 49 above 335, 338 above 337, 336 above 339
+            const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
+            sortedSlots = [
+                slotMap.get(47), slotMap.get(49), slotMap.get(338), slotMap.get(336),  // Top row
+                slotMap.get(48), slotMap.get(335), slotMap.get(337), slotMap.get(339)  // Bottom row
+            ].filter(Boolean);
+        } else if (floor.floor === -4) {
+            // Floor -4: 238 above 239, rest chronologically (19, 240, 241, 242, 243)
+            // With 3 columns: Column 1: 238,239 | Column 2: 19,240 | Column 3: 241,242 | 243 alone
+            const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
+            const rest = [19, 240, 241, 242, 243].map(n => slotMap.get(n)).filter(Boolean);
+            sortedSlots = [
+                slotMap.get(238), rest[0], rest[2],  // Top row: 238, 19, 241
+                slotMap.get(239), rest[1], rest[3],  // Middle row: 239, 240, 242
+                rest[4]                               // Bottom row: 243
+            ].filter(Boolean);
+        } else if (floor.floor === 1 || floor.floor === -1 || floor.floor === 4) {
+            // Floors 1, -1, 4: standard sort
+            sortedSlots.sort((a, b) => a.number - b.number);
+        } else {
+            // Default: sort by number
+            sortedSlots.sort((a, b) => a.number - b.number);
+        }
+
+        sortedSlots.forEach(slot => {
             const slotElement = document.createElement('div');
             const status = getSlotStatus(floor.floor, slot.number, slot.assigned);
             

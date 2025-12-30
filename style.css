@@ -63,6 +63,7 @@ header h1 {
 }
 
 .btn-reset {
+    display: none;
     background: #f39c12;
     color: white;
     border: none;
@@ -135,19 +136,38 @@ header h1 {
     text-align: center;
 }
 
-.floor-1 { background: #3498db; }
-.floor-2 { background: #e74c3c; }
-.floor-4 { background: #9b59b6; }
-.floor-neg1 { background: #27ae60; }
-.floor-neg2 { background: #8e44ad; }
-.floor-neg3 { background: #f39c12; }
-.floor-neg4 { background: #d35400; }
+.floor-1 { background: #b6b6b6; }
+.floor-2 { background: #b6b6b6; }
+.floor-4 { background: #b6b6b6; }
+.floor-neg1 { background: #b6b6b6; }
+.floor-neg2 { background: #b6b6b6; }
+.floor-neg3 { background: #b6b6b6; }
+.floor-neg4 { background: #b6b6b6; }
 
 .parking-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 12px;
     padding: 20px;
+    max-width: 100%;
+}
+
+/* Standard layout: 2 columns, vertical flow (for floors 1, -1, 4) */
+.parking-grid-standard {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-flow: column;
+}
+
+/* Doubles layout: 3 columns, 2 rows (for floors with double parking) */
+.parking-grid-doubles {
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-flow: row;
+}
+
+/* For larger screens, standard layout can use 3 columns */
+@media (min-width: 768px) {
+    .parking-grid-standard {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
 
 .parking-slot {
@@ -234,8 +254,16 @@ footer {
         font-size: 20px;
     }
 
-    .parking-grid {
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    .parking-grid-standard {
+        grid-template-columns: repeat(2, 1fr);
+        grid-auto-flow: column;
+        gap: 10px;
+        padding: 15px;
+    }
+    
+    .parking-grid-doubles {
+        grid-template-columns: repeat(3, 1fr);
+        grid-auto-flow: row;
         gap: 10px;
         padding: 15px;
     }
