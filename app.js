@@ -463,9 +463,12 @@ function renderParking() {
             // Show double parking indicator if applicable
             const doubleIndicator = slot.isDouble ? ' (Double)' : '';
             
+            // Anonymize name for display (privacy)
+            const displayName = slot.name ? anonymizeName(slot.name) : null;
+            
             slotElement.innerHTML = `
                 <div class="slot-number">${slot.number}${doubleIndicator}</div>
-                ${slot.name ? `<div class="slot-name">${slot.name}</div>` : ''}
+                ${displayName ? `<div class="slot-name">${displayName}</div>` : ''}
                 ${slot.notes ? `<div class="slot-notes">${slot.notes}</div>` : ''}
             `;
 
