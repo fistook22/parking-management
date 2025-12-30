@@ -250,13 +250,8 @@ function toggleSlot(floor, slotNumber) {
         if (status[slotKey] === 'free' || status[slotKey] === 'assigned') {
             status[slotKey] = 'occupied';
         } else if (status[slotKey] === 'occupied') {
-            // Check if this slot was originally assigned
-            const processedFloors = processParkingData();
-            const slot = processedFloors
-                .find(f => f.floor === floor)
-                ?.slots.find(s => s.number === slotNumber);
-            
-            status[slotKey] = slot?.assigned ? 'assigned' : 'free';
+            // When freed, always become green (free), regardless of original assignment
+            status[slotKey] = 'free';
         }
         
         saveStatus(status);

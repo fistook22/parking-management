@@ -288,7 +288,7 @@ header h1 {
 }
 
 .parking-slot.assigned {
-    background: var(--color-assigned);
+    background: var(--color-free);
     cursor: pointer;
 }
 
