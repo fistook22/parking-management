@@ -462,6 +462,19 @@ function checkDailyReset() {
     }
 }
 
+// Toggle guidelines visibility
+function toggleGuidelines() {
+    const guidelines = document.getElementById('guidelines');
+    
+    if (guidelines.classList.contains('guidelines-expanded')) {
+        guidelines.classList.remove('guidelines-expanded');
+        guidelines.classList.add('guidelines-collapsed');
+    } else {
+        guidelines.classList.remove('guidelines-collapsed');
+        guidelines.classList.add('guidelines-expanded');
+    }
+}
+
 // Initialize app
 function init() {
     updateDateDisplay();
@@ -474,6 +487,12 @@ function init() {
     
     // Set up reset button
     document.getElementById('resetBtn').addEventListener('click', resetAll);
+    
+    // Set up guidelines toggle
+    const guidelinesToggle = document.getElementById('guidelinesToggle');
+    if (guidelinesToggle) {
+        guidelinesToggle.addEventListener('click', toggleGuidelines);
+    }
     
     // Check for daily reset every minute
     setInterval(checkDailyReset, 60000);

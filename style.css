@@ -48,6 +48,86 @@ header h1 {
     font-size: 14px;
     color: #7f8c8d;
     font-weight: 500;
+    margin-bottom: 15px;
+}
+
+.guidelines {
+    margin-top: 15px;
+    width: 100%;
+    max-width: 100%;
+}
+
+.guidelines-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: background 0.3s;
+    user-select: none;
+}
+
+.guidelines-header:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.guidelines-icon {
+    font-size: 20px;
+    transition: transform 0.3s;
+}
+
+.guidelines.guidelines-collapsed .guidelines-icon {
+    transform: rotate(180deg);
+}
+
+.guidelines-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.guidelines-content {
+    line-height: 1.7;
+    margin-top: 12px;
+    max-height: 800px;
+    overflow: hidden;
+    transition: max-height 0.4s ease-out, margin 0.4s ease-out, opacity 0.3s ease-out;
+    opacity: 1;
+    padding: 0 10px;
+}
+
+.guidelines.guidelines-collapsed .guidelines-content {
+    max-height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+}
+
+.guidelines-content p {
+    margin-bottom: 12px;
+    color: var(--color-text);
+    font-size: 13px;
+    text-align: right;
+}
+
+.guidelines-content p strong {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.guidelines-footer {
+    margin-top: 15px;
+    padding-top: 12px;
+    border-top: 1px solid #e0e0e0;
+    text-align: center;
+    font-weight: 500;
+    color: var(--color-text);
+    font-size: 13px;
 }
 
 .controls {
@@ -252,6 +332,27 @@ footer {
 
     header h1 {
         font-size: 20px;
+    }
+    
+    .guidelines-header {
+        padding: 6px;
+    }
+    
+    .guidelines-header h3 {
+        font-size: 14px;
+    }
+    
+    .guidelines-icon {
+        font-size: 18px;
+    }
+    
+    .guidelines-content {
+        padding: 0 5px;
+    }
+    
+    .guidelines-content p {
+        font-size: 12px;
+        margin-bottom: 10px;
     }
 
     .parking-grid-standard {
