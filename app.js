@@ -468,7 +468,72 @@ function filterFloors(selectedFloor) {
         }
     });
     
+    // Apply occupied filter if checkbox is checked
+    applyOccupiedFilter();
+    
     trackEvent('floor_filtered', { floor: selectedFloor });
+}
+
+// Hide/show occupied slots based on checkbox
+function applyOccupiedFilter() {
+    const checkbox = document.getElementById('hideOccupiedCheckbox');
+    if (!checkbox) return; // Checkbox not yet available
+    
+    const hideOccupied = checkbox.checked;
+    const allOccupiedSlots = document.querySelectorAll('.parking-slot.occupied');
+    
+    // Hide/show occupied slots
+    allOccupiedSlots.forEach(slot => {
+        if (hideOccupied) {
+            slot.style.display = 'none';
+        } else {
+            slot.style.display = 'flex';
+        }
+    });
+    
+    // Hide double parking containers if all slots inside are hidden (occupied)
+    const doubleParkingGroups = document.querySelectorAll('.double-parking-group');
+    doubleParkingGroups.forEach(group => {
+        const slotsInGroup = group.querySelectorAll('.parking-slot');
+        const hasVisibleSlots = Array.from(slotsInGroup).some(slot => {
+            // A slot is visible if it's not occupied OR if we're not hiding occupied
+            return !slot.classList.contains('occupied') || !hideOccupied;
+        });
+        
+        if (hideOccupied && !hasVisibleSlots) {
+            group.style.display = 'none';
+        } else {
+            group.style.display = '';
+        }
+    });
+    
+    // Hide floor sections that have no visible slots
+    const floorSections = document.querySelectorAll('.floor-section');
+    floorSections.forEach(section => {
+        const allSlotsInFloor = section.querySelectorAll('.parking-slot');
+        const hasVisibleSlots = Array.from(allSlotsInFloor).some(slot => {
+            // A slot is visible if it's not occupied OR if we're not hiding occupied
+            return !slot.classList.contains('occupied') || !hideOccupied;
+        });
+        
+        if (hideOccupied && !hasVisibleSlots) {
+            section.style.display = 'none';
+        } else {
+            // Only show if it wasn't already hidden by floor filter
+            const floorNumber = parseInt(section.dataset.floor);
+            const activeChip = document.querySelector('.filter-chip.active');
+            if (activeChip) {
+                const selectedFloor = activeChip.dataset.floor;
+                if (selectedFloor === 'all' || parseInt(selectedFloor) === floorNumber) {
+                    section.style.display = 'block';
+                }
+            } else {
+                section.style.display = 'block';
+            }
+        }
+    });
+    
+    trackEvent('occupied_filter_toggled', { hide_occupied: hideOccupied });
 }
 
 // Render floor divider
@@ -649,6 +714,9 @@ function renderParking() {
         floorSection.appendChild(grid);
         container.appendChild(floorSection);
     });
+    
+    // Apply occupied filter after rendering
+    applyOccupiedFilter();
 }
 
 // Update date display
@@ -728,6 +796,12 @@ function init() {
             closeModal();
         }
     });
+    
+    // Set up hide occupied checkbox
+    const hideOccupiedCheckbox = document.getElementById('hideOccupiedCheckbox');
+    if (hideOccupiedCheckbox) {
+        hideOccupiedCheckbox.addEventListener('change', applyOccupiedFilter);
+    }
     
     // Check for daily reset every minute
     setInterval(checkDailyReset, 60000);
