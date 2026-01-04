@@ -645,15 +645,16 @@ function renderParking() {
                 slotMap.get(351), slotMap.get(30), slotMap.get(308)   // Bottom row
             ].filter(Boolean);
         } else if (floor.floor === -3) {
-            // Floor -3: Grid layout (3 columns)
-            // Col 1: 336, 337, 335 (top to bottom)
-            // Col 2: 47, 48, 339 (top to bottom)
-            // Col 3: 49, 50 (top to bottom)
+            // Floor -3: Grouped by number ranges, fully chronological
+            // Col 1: 47, 48, 49, 339 (40s range + 339)
+            // Col 2: 336-337 (double parking)
+            // Col 3: 335, 338, 50 (300s range + 50)
             const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
             sortedSlots = [
-                slotMap.get(336), slotMap.get(47), slotMap.get(49), // Row 1
-                slotMap.get(337), slotMap.get(48), slotMap.get(50), // Row 2
-                slotMap.get(335), slotMap.get(339)                  // Row 3
+                slotMap.get(47),  slotMap.get(336), slotMap.get(335), // Row 1
+                slotMap.get(48),  slotMap.get(337), slotMap.get(338), // Row 2
+                slotMap.get(49),  null,              slotMap.get(50), // Row 3
+                slotMap.get(339), null,              null              // Row 4
             ].filter(Boolean);
         } else if (floor.floor === -4) {
             const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
