@@ -59,17 +59,22 @@ const parkingData = {
             floor: 1,
             color: 'floor-1',
             slots: [
-                { number: 40, name: 'Tal Gozlan', assigned: true },
-                { number: 41, name: 'Miri Blima', assigned: true }
+                { number: 42, name: 'Tal Gozlan', assigned: true }
             ]
         },
         {
             floor: 2,
             color: 'floor-2',
             slots: [
-                { number: 1, name: 'Shai Finkelstein', assigned: true, notes: 'חנייה כפולה + 2 (ספקים)' },
-                { number: 3, name: null, assigned: false, notes: 'חנייה כפולה + 4' },
+                { number: 3, name: 'Shai Finkelstein', assigned: true, notes: 'חנייה כפולה + 4 (ספקים)' },
                 { number: 5, name: null, assigned: false, notes: 'חנייה כפולה + 6' }
+            ]
+        },
+        {
+            floor: 3,
+            color: 'floor-3',
+            slots: [
+                { number: 94, name: null, assigned: false, notes: 'חנייה כפולה + 95' }
             ]
         },
         {
@@ -106,6 +111,7 @@ const parkingData = {
                 { number: 47, name: 'Ehab Jaber', assigned: true },
                 { number: 48, name: 'Eden Gita Gueta', assigned: true },
                 { number: 49, name: 'Roii Gurevitch', assigned: true },
+                { number: 50, name: 'Matti Brand', assigned: true },
                 { number: 335, name: 'Lia Cohen', assigned: true },
                 { number: 338, name: 'Tal Zamir', assigned: true },
                 { number: 339, name: 'Alpir Kritzler', assigned: true },
@@ -116,7 +122,6 @@ const parkingData = {
             floor: -4,
             color: 'floor-neg4',
             slots: [
-                { number: 19, name: 'Matti Brand', assigned: true },
                 { number: 243, name: 'Yair Furman', assigned: true },
                 { number: 238, name: null, assigned: false, notes: 'חניה כפולה + 239' },
                 { number: 240, name: null, assigned: false },
@@ -422,8 +427,8 @@ function renderFloorFilters() {
     const processedFloors = processParkingData();
     const availableFloors = processedFloors.map(f => f.floor);
     
-    // Order: 1, 2, 4, -1, -2, -3, -4
-    const floorOrder = [1, 2, 4, -1, -2, -3, -4];
+    // Order: 1, 2, 3, 4, -1, -2, -3, -4
+    const floorOrder = [1, 2, 3, 4, -1, -2, -3, -4];
     const floors = floorOrder.filter(floor => availableFloors.includes(floor));
     
     // Add "All" chip
@@ -640,20 +645,22 @@ function renderParking() {
                 slotMap.get(351), slotMap.get(30), slotMap.get(308)   // Bottom row
             ].filter(Boolean);
         } else if (floor.floor === -3) {
-            // Floor -3: 47 above 48, 49 above 335, 338 above 337, 336 above 339
-            // Arrange: Double parking (336-337) on left, then 47-48, 49-335, 338-339
+            // Floor -3: Grid layout (3 columns)
+            // Col 1: 336, 337, 335 (top to bottom)
+            // Col 2: 47, 48, 339 (top to bottom)
+            // Col 3: 49, 50 (top to bottom)
             const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
             sortedSlots = [
-                slotMap.get(336), slotMap.get(47), slotMap.get(49), slotMap.get(338), // Top row
-                slotMap.get(337), slotMap.get(48), slotMap.get(335), slotMap.get(339)  // Bottom row
+                slotMap.get(336), slotMap.get(47), slotMap.get(49), // Row 1
+                slotMap.get(337), slotMap.get(48), slotMap.get(50), // Row 2
+                slotMap.get(335), slotMap.get(339)                  // Row 3
             ].filter(Boolean);
         } else if (floor.floor === -4) {
             const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
-            const rest = [19, 240, 241, 242, 243].map(n => slotMap.get(n)).filter(Boolean);
+            const rest = [240, 241, 242, 243].map(n => slotMap.get(n)).filter(Boolean);
             sortedSlots = [
                 slotMap.get(238), rest[0], rest[2],
-                slotMap.get(239), rest[1], rest[3],
-                rest[4]
+                slotMap.get(239), rest[1], rest[3]
             ].filter(Boolean);
         } else {
             sortedSlots.sort((a, b) => a.number - b.number);
@@ -674,7 +681,7 @@ function renderParking() {
 
         // For floors with doubles layout, render double parking groups first
         // They will span 2 columns and align at the top
-        if (floor.floor === 2 || floor.floor === -2 || floor.floor === -3 || floor.floor === -4) {
+        if (floor.floor === 2 || floor.floor === 3 || floor.floor === -2 || floor.floor === -3 || floor.floor === -4) {
             doubleGroups.forEach(group => {
                 const container = document.createElement('div');
                 container.className = 'double-parking-group';

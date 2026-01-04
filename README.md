@@ -4,7 +4,7 @@ A mobile-friendly web app for managing parking slots, shareable via WhatsApp.
 
 ## Features
 
-- ✅ **Floor-based organization** - All parking slots organized by floor (1, 2, 4, -1, -2, -3, -4)
+- ✅ **Floor-based organization** - All parking slots organized by floor (1, 2, 3, 4, -1, -2, -3, -4)
 - ✅ **Color-coded status**:
   - 🟢 **Green** = Free (clickable)
   - 🔴 **Red** = Occupied (clickable)
@@ -52,13 +52,14 @@ See **[DEPLOY.md](DEPLOY.md)** for step-by-step instructions.
 ## Data Structure
 
 The app includes all parking slots from your image:
-- **Floor 1**: Slots 40, 41
-- **Floor 2**: Slots 1, 3, 5
+- **Floor 1**: Slot 42
+- **Floor 2**: Slots 3, 5
+- **Floor 3**: Slot 94
 - **Floor 4**: Slots 45, 46
 - **Floor -1**: Slots 92, 93
 - **Floor -2**: Slots 29, 30, 31, 308, 350
-- **Floor -3**: Slots 47, 48, 49, 335, 338, 339, 336
-- **Floor -4**: Slots 19, 243, 238, 240, 241, 242
+- **Floor -3**: Slots 47, 48, 49, 50, 335, 338, 339, 336
+- **Floor -4**: Slots 243, 238, 240, 241, 242
 
 ## Customization
 
