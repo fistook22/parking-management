@@ -637,31 +637,33 @@ function renderParking() {
             // Floor 2: Simple sort, pairs will be grouped and arranged side by side
             sortedSlots.sort((a, b) => a.number - b.number);
         } else if (floor.floor === -2) {
-            // Floor -2: 29 above 30, 31 above 308, 350 above 351
-            // Arrange: Double parking (350-351) on left, then 29-30, 31-308
+            // Floor -2: Chronological left to right, doubles on left
+            // Row 1: 350 (double), 29, 30
+            // Row 2: 351 (double), 31, 308
             const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
             sortedSlots = [
-                slotMap.get(350), slotMap.get(29), slotMap.get(31),  // Top row
-                slotMap.get(351), slotMap.get(30), slotMap.get(308)   // Bottom row
+                slotMap.get(350), slotMap.get(29), slotMap.get(30),  // Row 1
+                slotMap.get(351), slotMap.get(31), slotMap.get(308)  // Row 2
             ].filter(Boolean);
         } else if (floor.floor === -3) {
-            // Floor -3: Grouped by number ranges, fully chronological
-            // Col 1: 47, 48, 49, 339 (40s range + 339)
-            // Col 2: 336-337 (double parking)
-            // Col 3: 335, 338, 50 (300s range + 50)
+            // Floor -3: Custom layout
+            // Row 1: 47, 48, (double parking 336)
+            // Row 2: 49, 50, (double parking 337)
+            // Row 3: 335, 338, 339
             const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
             sortedSlots = [
-                slotMap.get(47),  slotMap.get(336), slotMap.get(335), // Row 1
-                slotMap.get(48),  slotMap.get(337), slotMap.get(338), // Row 2
-                slotMap.get(49),  null,              slotMap.get(50), // Row 3
-                slotMap.get(339), null,              null              // Row 4
+                slotMap.get(47),  slotMap.get(48),  slotMap.get(336), // Row 1
+                slotMap.get(49),  slotMap.get(50),  slotMap.get(337), // Row 2
+                slotMap.get(335), slotMap.get(338), slotMap.get(339)  // Row 3
             ].filter(Boolean);
         } else if (floor.floor === -4) {
+            // Floor -4: Chronological left to right, doubles on left
+            // Row 1: 238 (double), 240, 241
+            // Row 2: 239 (double), 242, 243
             const slotMap = new Map(sortedSlots.map(s => [s.number, s]));
-            const rest = [240, 241, 242, 243].map(n => slotMap.get(n)).filter(Boolean);
             sortedSlots = [
-                slotMap.get(238), rest[0], rest[2],
-                slotMap.get(239), rest[1], rest[3]
+                slotMap.get(238), slotMap.get(240), slotMap.get(241), // Row 1
+                slotMap.get(239), slotMap.get(242), slotMap.get(243)  // Row 2
             ].filter(Boolean);
         } else {
             sortedSlots.sort((a, b) => a.number - b.number);
