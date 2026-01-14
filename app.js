@@ -778,10 +778,15 @@ function renderParkingSlot(floor, slot, status) {
     }
     
     const slotElement = document.createElement('div');
-    slotElement.className = `parking-slot ${normalizedStatus}`;
+    // Ensure we're setting the class correctly - use classList for reliability
+    slotElement.className = 'parking-slot';
+    slotElement.classList.add(normalizedStatus);
     
-    // Debug: Log the class being set
+    // Debug: Log the class being set and verify it
     console.log(`Setting class for slot ${floor}_${slot.number}: parking-slot ${normalizedStatus}`);
+    console.log(`  - Actual className: ${slotElement.className}`);
+    console.log(`  - Has 'free' class: ${slotElement.classList.contains('free')}`);
+    console.log(`  - Has 'occupied' class: ${slotElement.classList.contains('occupied')}`);
     
     // Anonymize name for display (privacy)
     const displayName = slot.name ? anonymizeName(slot.name) : null;
