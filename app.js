@@ -382,14 +382,27 @@ function toggleSlot(floor, slotNumber) {
         let currentStatus = status[slotKey];
         let oldStatus;
         
+        // Extract string status from whatever format we have
         if (typeof currentStatus === 'string') {
             oldStatus = currentStatus;
         } else if (typeof currentStatus === 'object' && currentStatus !== null) {
-            oldStatus = currentStatus.status || 'free';
+            // Extract from object
+            oldStatus = currentStatus.status;
+            if (!oldStatus || typeof oldStatus !== 'string') {
+                oldStatus = 'free';
+            }
+            console.log(`Extracted status from object for ${slotKey}: ${oldStatus}`);
         } else {
             oldStatus = 'free';
-            currentStatus = 'free';
         }
+        
+        // Normalize oldStatus to ensure it's valid
+        if (oldStatus !== 'free' && oldStatus !== 'occupied' && oldStatus !== 'assigned') {
+            console.warn(`Invalid oldStatus for ${slotKey}: ${oldStatus}, defaulting to free`);
+            oldStatus = 'free';
+        }
+        
+        console.log(`Current status for ${slotKey}: ${oldStatus} (type: ${typeof currentStatus})`);
         
         // Toggle between free and occupied (assigned slots can also be toggled)
         let newStatus;
@@ -401,6 +414,8 @@ function toggleSlot(floor, slotNumber) {
         } else {
             newStatus = 'free';
         }
+        
+        console.log(`Toggling ${slotKey}: ${oldStatus} -> ${newStatus}`);
         
         // Always save as string format (revert to original format)
         status[slotKey] = newStatus;
@@ -465,19 +480,57 @@ function getSlotStatus(floor, slotNumber, isAssigned) {
     if (status[slotKey] !== undefined && status[slotKey] !== null) {
         // Handle both old format (string) and new format (object from auth changes)
         const slotStatus = status[slotKey];
+        
+        // Extract string status from whatever format we have
+        let extractedStatus;
         if (typeof slotStatus === 'string') {
-            return slotStatus;
+            extractedStatus = slotStatus;
         } else if (typeof slotStatus === 'object' && slotStatus !== null) {
             // Extract status from object format
-            const extractedStatus = slotStatus.status;
+            extractedStatus = slotStatus.status;
+            // If we found an object, migrate it immediately
             if (extractedStatus && typeof extractedStatus === 'string') {
+                // Migrate this slot immediately
+                status[slotKey] = extractedStatus;
+                // Save the migrated data
+                const key = getStorageKey();
+                localStorage.setItem(key, JSON.stringify(status));
+                // Also save to Firebase if available
+                if (typeof database !== 'undefined') {
+                    database.ref(`parking/${key}`).set(status).catch((error) => {
+                        console.warn('Firebase write error during migration:', error);
+                    });
+                }
+                console.log(`Migrated ${slotKey} during getSlotStatus: ${extractedStatus}`);
                 return extractedStatus;
             }
             // If object format but no status property, default based on assignment
-            return isAssigned ? 'occupied' : 'free';
+            extractedStatus = isAssigned ? 'occupied' : 'free';
+            // Migrate it
+            status[slotKey] = extractedStatus;
+            const key = getStorageKey();
+            localStorage.setItem(key, JSON.stringify(status));
+            return extractedStatus;
+        } else {
+            // Invalid type, default based on assignment
+            extractedStatus = isAssigned ? 'occupied' : 'free';
+            // Fix it
+            status[slotKey] = extractedStatus;
+            const key = getStorageKey();
+            localStorage.setItem(key, JSON.stringify(status));
+            return extractedStatus;
         }
-        // If it's some other type, default based on assignment
-        return isAssigned ? 'occupied' : 'free';
+        
+        // Validate the extracted status
+        if (extractedStatus !== 'free' && extractedStatus !== 'occupied' && extractedStatus !== 'assigned') {
+            console.warn(`Invalid status value for ${slotKey}: ${extractedStatus}, defaulting`);
+            extractedStatus = isAssigned ? 'occupied' : 'free';
+            status[slotKey] = extractedStatus;
+            const key = getStorageKey();
+            localStorage.setItem(key, JSON.stringify(status));
+        }
+        
+        return extractedStatus;
     }
     
     // Otherwise, default based on assignment (assigned slots default to occupied)
@@ -697,8 +750,22 @@ function renderParkingSlot(floor, slot, status) {
         normalizedStatus = slot.assigned ? 'occupied' : 'free';
     }
     
+    // Force normalize to ensure it's exactly 'free' or 'occupied'
+    if (normalizedStatus === 'assigned') {
+        normalizedStatus = 'occupied'; // 'assigned' should be treated as 'occupied' for CSS
+    }
+    
+    // Final validation
+    if (normalizedStatus !== 'free' && normalizedStatus !== 'occupied') {
+        console.error(`Invalid normalizedStatus for slot ${floor}_${slot.number}: ${normalizedStatus}, forcing to free`);
+        normalizedStatus = 'free';
+    }
+    
     const slotElement = document.createElement('div');
     slotElement.className = `parking-slot ${normalizedStatus}`;
+    
+    // Debug: Log the class being set
+    console.log(`Setting class for slot ${floor}_${slot.number}: parking-slot ${normalizedStatus}`);
     
     // Anonymize name for display (privacy)
     const displayName = slot.name ? anonymizeName(slot.name) : null;
