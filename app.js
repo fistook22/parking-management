@@ -149,34 +149,99 @@ function getStatus(callback) {
             statusRef.once('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
+                    // Migrate data from object format to string format if needed
+                    const migrated = migrateStatusData(data);
+                    if (migrated) {
+                        console.log('Data migrated during getStatus, saving back...');
+                        // Save migrated data back to Firebase
+                        statusRef.set(data).catch((error) => {
+                            console.warn('Error saving migrated data:', error);
+                        });
+                    }
+                    
                     // Update localStorage with latest data
                     localStorage.setItem(key, JSON.stringify(data));
                     callback(data);
                 } else {
                     // Fallback to localStorage
                     const stored = localStorage.getItem(key);
-                    callback(stored ? JSON.parse(stored) : {});
+                    const parsed = stored ? JSON.parse(stored) : {};
+                    // Migrate localStorage data too
+                    migrateStatusData(parsed);
+                    callback(parsed);
                 }
             }, (error) => {
                 console.warn('Firebase read error, using localStorage:', error);
                 const stored = localStorage.getItem(key);
-                callback(stored ? JSON.parse(stored) : {});
+                const parsed = stored ? JSON.parse(stored) : {};
+                // Migrate localStorage data too
+                migrateStatusData(parsed);
+                callback(parsed);
             });
         } else {
             // Fallback to localStorage
             const stored = localStorage.getItem(key);
-            callback(stored ? JSON.parse(stored) : {});
+            const parsed = stored ? JSON.parse(stored) : {};
+            // Migrate localStorage data too
+            migrateStatusData(parsed);
+            callback(parsed);
         }
         return;
     }
     
     // Synchronous version for rendering (uses localStorage)
     const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : {};
+    const parsed = stored ? JSON.parse(stored) : {};
+    // Migrate localStorage data too
+    migrateStatusData(parsed);
+    return parsed;
+}
+
+// Migrate status data from object format to string format
+function migrateStatusData(status) {
+    let changed = false;
+    const processedFloors = processParkingData();
+    
+    processedFloors.forEach(floor => {
+        floor.slots.forEach(slot => {
+            const slotKey = `${floor.floor}_${slot.number}`;
+            const currentValue = status[slotKey];
+            
+            if (currentValue !== undefined && currentValue !== null) {
+                if (typeof currentValue === 'object') {
+                    // Migrate from object format to string format
+                    const extractedStatus = currentValue.status;
+                    if (extractedStatus && typeof extractedStatus === 'string') {
+                        status[slotKey] = extractedStatus;
+                        changed = true;
+                        console.log(`Migrated ${slotKey} from object to string: ${extractedStatus}`);
+                    } else {
+                        // Invalid object, use default
+                        status[slotKey] = slot.assigned ? 'occupied' : 'free';
+                        changed = true;
+                        console.log(`Fixed invalid object for ${slotKey}: ${status[slotKey]}`);
+                    }
+                } else if (typeof currentValue !== 'string') {
+                    // Invalid type, reset to default
+                    status[slotKey] = slot.assigned ? 'occupied' : 'free';
+                    changed = true;
+                    console.log(`Fixed invalid type for ${slotKey}: ${status[slotKey]}`);
+                }
+            }
+        });
+    });
+    
+    return changed;
 }
 
 // Save status to Firebase (with localStorage backup)
 function saveStatus(status) {
+    // Always migrate data before saving to ensure it's in string format
+    const migrated = migrateStatusData(status);
+    if (migrated) {
+        console.log('Data migrated during save');
+    }
+    
     const key = getStorageKey();
     
     // Save to Firebase
@@ -203,6 +268,16 @@ function setupRealtimeListener() {
     statusRef.on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
+            // Migrate data from object format to string format if needed
+            const migrated = migrateStatusData(data);
+            if (migrated) {
+                console.log('Data migrated from Firebase, saving back...');
+                // Save migrated data back to Firebase
+                statusRef.set(data).catch((error) => {
+                    console.warn('Error saving migrated data:', error);
+                });
+            }
+            
             // Update localStorage with latest data
             localStorage.setItem(key, JSON.stringify(data));
             // Re-render parking slots
@@ -221,32 +296,22 @@ function initializeStatus() {
         let changed = false;
         const processedFloors = processParkingData();
 
+        // First, migrate any object format data to string format
+        const migrated = migrateStatusData(status);
+        if (migrated) {
+            changed = true;
+            console.log('Data migrated during initialization');
+        }
+
+        // Then initialize any missing slots
         processedFloors.forEach(floor => {
             floor.slots.forEach(slot => {
                 const slotKey = `${floor.floor}_${slot.number}`;
-                const currentValue = status[slotKey];
-                
-                if (currentValue === undefined || currentValue === null) {
+                if (status[slotKey] === undefined || status[slotKey] === null) {
                     // Initialize as 'free' for non-assigned, 'occupied' for assigned
                     status[slotKey] = slot.assigned ? 'occupied' : 'free';
                     changed = true;
                     console.log(`Initialized ${slotKey}: ${status[slotKey]}`);
-                } else if (typeof currentValue === 'object') {
-                    // Migrate from object format (from auth changes) back to string format
-                    const extractedStatus = currentValue.status;
-                    if (extractedStatus && typeof extractedStatus === 'string') {
-                        status[slotKey] = extractedStatus;
-                    } else {
-                        // No valid status in object, use default
-                        status[slotKey] = slot.assigned ? 'occupied' : 'free';
-                    }
-                    changed = true;
-                    console.log(`Migrated ${slotKey} from object to string: ${status[slotKey]}`);
-                } else if (typeof currentValue !== 'string') {
-                    // Invalid type, reset to default
-                    status[slotKey] = slot.assigned ? 'occupied' : 'free';
-                    changed = true;
-                    console.log(`Fixed invalid type for ${slotKey}: ${status[slotKey]}`);
                 }
             });
         });
