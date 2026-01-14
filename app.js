@@ -382,7 +382,7 @@ function toggleSlot(floor, slotNumber) {
         let currentStatus = status[slotKey];
         let oldStatus;
         
-        // Extract string status from whatever format we have
+        // Extract string status from whatever format we have - MUST be a string
         if (typeof currentStatus === 'string') {
             oldStatus = currentStatus;
         } else if (typeof currentStatus === 'object' && currentStatus !== null) {
@@ -391,27 +391,38 @@ function toggleSlot(floor, slotNumber) {
             if (!oldStatus || typeof oldStatus !== 'string') {
                 oldStatus = 'free';
             }
-            console.log(`Extracted status from object for ${slotKey}: ${oldStatus}`);
+            // Immediately migrate this slot to string format
+            status[slotKey] = oldStatus;
+            console.log(`Extracted and migrated status from object for ${slotKey}: ${oldStatus}`);
         } else {
             oldStatus = 'free';
+            // Fix invalid status
+            status[slotKey] = oldStatus;
         }
         
-        // Normalize oldStatus to ensure it's valid
+        // Normalize oldStatus to ensure it's valid - MUST be 'free' or 'occupied'
         if (oldStatus !== 'free' && oldStatus !== 'occupied' && oldStatus !== 'assigned') {
             console.warn(`Invalid oldStatus for ${slotKey}: ${oldStatus}, defaulting to free`);
             oldStatus = 'free';
+            status[slotKey] = oldStatus;
         }
         
-        console.log(`Current status for ${slotKey}: ${oldStatus} (type: ${typeof currentStatus})`);
+        // Convert 'assigned' to 'occupied' for toggle logic
+        if (oldStatus === 'assigned') {
+            oldStatus = 'occupied';
+        }
+        
+        console.log(`Current status for ${slotKey}: ${oldStatus} (type: ${typeof currentStatus}, extracted as string: ${typeof oldStatus})`);
         
         // Toggle between free and occupied (assigned slots can also be toggled)
         let newStatus;
-        if (oldStatus === 'free' || oldStatus === 'assigned') {
+        if (oldStatus === 'free') {
             newStatus = 'occupied';
         } else if (oldStatus === 'occupied') {
             // When freed, always become green (free), regardless of original assignment
             newStatus = 'free';
         } else {
+            // Fallback
             newStatus = 'free';
         }
         
@@ -429,11 +440,14 @@ function toggleSlot(floor, slotNumber) {
         
         // Track analytics with anonymized name
         const assignedTo = slot?.name ? anonymizeName(slot.name) : null;
+        // Ensure we're passing strings, not objects, to analytics
+        const oldStatusString = typeof oldStatus === 'string' ? oldStatus : (oldStatus?.status || 'free');
+        const newStatusString = typeof newStatus === 'string' ? newStatus : (newStatus?.status || 'free');
         trackEvent('slot_toggled', {
             floor: floor,
             slot_number: slotNumber,
-            old_status: oldStatus,
-            new_status: newStatus,
+            old_status: oldStatusString,
+            new_status: newStatusString,
             is_assigned: slot?.assigned || false,
             assigned_to: assignedTo
         });
@@ -732,9 +746,11 @@ function renderFloorDivider(floorNumber) {
 
 // Render status badge
 function renderStatusBadge(status) {
+    // Ensure status is a string
+    const statusString = typeof status === 'string' ? status : (status?.status || 'free');
     const badge = document.createElement('div');
     badge.className = 'status-badge';
-    badge.textContent = status === 'free' ? 'Available' : 'Occupied';
+    badge.textContent = statusString === 'free' ? 'Available' : 'Occupied';
     return badge;
 }
 
