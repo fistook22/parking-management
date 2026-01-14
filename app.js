@@ -224,19 +224,42 @@ function initializeStatus() {
         processedFloors.forEach(floor => {
             floor.slots.forEach(slot => {
                 const slotKey = `${floor.floor}_${slot.number}`;
-                if (status[slotKey] === undefined) {
+                const currentValue = status[slotKey];
+                
+                if (currentValue === undefined || currentValue === null) {
                     // Initialize as 'free' for non-assigned, 'occupied' for assigned
                     status[slotKey] = slot.assigned ? 'occupied' : 'free';
                     changed = true;
+                    console.log(`Initialized ${slotKey}: ${status[slotKey]}`);
+                } else if (typeof currentValue === 'object') {
+                    // Migrate from object format (from auth changes) back to string format
+                    const extractedStatus = currentValue.status;
+                    if (extractedStatus && typeof extractedStatus === 'string') {
+                        status[slotKey] = extractedStatus;
+                    } else {
+                        // No valid status in object, use default
+                        status[slotKey] = slot.assigned ? 'occupied' : 'free';
+                    }
+                    changed = true;
+                    console.log(`Migrated ${slotKey} from object to string: ${status[slotKey]}`);
+                } else if (typeof currentValue !== 'string') {
+                    // Invalid type, reset to default
+                    status[slotKey] = slot.assigned ? 'occupied' : 'free';
+                    changed = true;
+                    console.log(`Fixed invalid type for ${slotKey}: ${status[slotKey]}`);
                 }
             });
         });
 
         if (changed) {
+            console.log('Status changed during initialization, saving...');
             saveStatus(status);
+        } else {
+            console.log('No changes needed during initialization');
         }
         
         // Initial render after initialization
+        console.log('Rendering parking slots...');
         renderParking();
     });
 }
@@ -280,23 +303,43 @@ function trackEvent(eventName, params = {}) {
 
 // Toggle slot status
 function toggleSlot(floor, slotNumber) {
+    console.log('toggleSlot called:', floor, slotNumber);
     const slotKey = `${floor}_${slotNumber}`;
     
     getStatus((status) => {
+        console.log('getStatus callback, status:', status);
         // Initialize if doesn't exist
         if (status[slotKey] === undefined) {
             status[slotKey] = 'free';
         }
         
-        const oldStatus = status[slotKey];
+        // Handle both old format (string) and new format (object from auth changes)
+        let currentStatus = status[slotKey];
+        let oldStatus;
+        
+        if (typeof currentStatus === 'string') {
+            oldStatus = currentStatus;
+        } else if (typeof currentStatus === 'object' && currentStatus !== null) {
+            oldStatus = currentStatus.status || 'free';
+        } else {
+            oldStatus = 'free';
+            currentStatus = 'free';
+        }
         
         // Toggle between free and occupied (assigned slots can also be toggled)
-        if (status[slotKey] === 'free' || status[slotKey] === 'assigned') {
-            status[slotKey] = 'occupied';
-        } else if (status[slotKey] === 'occupied') {
+        let newStatus;
+        if (oldStatus === 'free' || oldStatus === 'assigned') {
+            newStatus = 'occupied';
+        } else if (oldStatus === 'occupied') {
             // When freed, always become green (free), regardless of original assignment
-            status[slotKey] = 'free';
+            newStatus = 'free';
+        } else {
+            newStatus = 'free';
         }
+        
+        // Always save as string format (revert to original format)
+        status[slotKey] = newStatus;
+        console.log('Status updated:', slotKey, '=', newStatus);
         
         // Get slot info for analytics
         const processedFloors = processParkingData();
@@ -310,17 +353,18 @@ function toggleSlot(floor, slotNumber) {
             floor: floor,
             slot_number: slotNumber,
             old_status: oldStatus,
-            new_status: status[slotKey],
+            new_status: newStatus,
             is_assigned: slot?.assigned || false,
             assigned_to: assignedTo
         });
         
         saveStatus(status);
-        // renderParking() will be called automatically by real-time listener if Firebase is active
-        // Otherwise, render immediately
-        if (typeof database === 'undefined') {
-            renderParking();
-        }
+        console.log('Status saved, re-rendering...');
+        
+        // Always render immediately to show the change, even if Firebase is active
+        // The real-time listener will update again if needed, but we want instant feedback
+        console.log('Rendering immediately for instant feedback');
+        renderParking();
     });
 }
 
@@ -349,12 +393,26 @@ function resetAll() {
 
 // Get slot status
 function getSlotStatus(floor, slotNumber, isAssigned) {
-    const status = getStatus();
+    const status = getStatus(); // Synchronous version - reads from localStorage
     const slotKey = `${floor}_${slotNumber}`;
     
     // If status exists in storage, use it
-    if (status[slotKey] !== undefined) {
-        return status[slotKey];
+    if (status[slotKey] !== undefined && status[slotKey] !== null) {
+        // Handle both old format (string) and new format (object from auth changes)
+        const slotStatus = status[slotKey];
+        if (typeof slotStatus === 'string') {
+            return slotStatus;
+        } else if (typeof slotStatus === 'object' && slotStatus !== null) {
+            // Extract status from object format
+            const extractedStatus = slotStatus.status;
+            if (extractedStatus && typeof extractedStatus === 'string') {
+                return extractedStatus;
+            }
+            // If object format but no status property, default based on assignment
+            return isAssigned ? 'occupied' : 'free';
+        }
+        // If it's some other type, default based on assignment
+        return isAssigned ? 'occupied' : 'free';
     }
     
     // Otherwise, default based on assignment (assigned slots default to occupied)
@@ -564,8 +622,18 @@ function renderStatusBadge(status) {
 
 // Render parking slot card
 function renderParkingSlot(floor, slot, status) {
+    // Validate and normalize status
+    let normalizedStatus = status;
+    if (typeof status !== 'string') {
+        console.warn(`Invalid status type for slot ${floor}_${slot.number}:`, typeof status, status);
+        normalizedStatus = slot.assigned ? 'occupied' : 'free';
+    } else if (status !== 'free' && status !== 'occupied' && status !== 'assigned') {
+        console.warn(`Invalid status value for slot ${floor}_${slot.number}:`, status);
+        normalizedStatus = slot.assigned ? 'occupied' : 'free';
+    }
+    
     const slotElement = document.createElement('div');
-    slotElement.className = `parking-slot ${status}`;
+    slotElement.className = `parking-slot ${normalizedStatus}`;
     
     // Anonymize name for display (privacy)
     const displayName = slot.name ? anonymizeName(slot.name) : null;
@@ -586,7 +654,7 @@ function renderParkingSlot(floor, slot, status) {
     contentWrapper.appendChild(numberElement);
     
     // Status badge (middle)
-    const badge = renderStatusBadge(status);
+    const badge = renderStatusBadge(normalizedStatus);
     contentWrapper.appendChild(badge);
     
     // Name (bottom, if exists)
@@ -607,7 +675,10 @@ function renderParkingSlot(floor, slot, status) {
     slotElement.appendChild(contentWrapper);
     
     // Make all slots clickable
-    slotElement.addEventListener('click', () => {
+    slotElement.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Slot clicked:', floor, slot.number);
         toggleSlot(floor, slot.number);
     });
     
@@ -616,7 +687,12 @@ function renderParkingSlot(floor, slot, status) {
 
 // Render parking slots
 function renderParking() {
+    console.log('=== renderParking() called ===');
     const container = document.getElementById('floorsContainer');
+    if (!container) {
+        console.error('floorsContainer not found!');
+        return;
+    }
     container.innerHTML = '';
 
     const processedFloors = processParkingData();
@@ -705,6 +781,7 @@ function renderParking() {
                 
                 group.forEach(slot => {
                     const status = getSlotStatus(floor.floor, slot.number, slot.assigned);
+                    console.log(`Rendering slot ${floor.floor}_${slot.number}: status=${status}, assigned=${slot.assigned}`);
                     const slotElement = renderParkingSlot(floor.floor, slot, status);
                     slotsContainer.appendChild(slotElement);
                 });
@@ -717,6 +794,7 @@ function renderParking() {
         // Render regular slots
         regular.forEach(slot => {
             const status = getSlotStatus(floor.floor, slot.number, slot.assigned);
+            console.log(`Rendering slot ${floor.floor}_${slot.number}: status=${status}, assigned=${slot.assigned}`);
             const slotElement = renderParkingSlot(floor.floor, slot, status);
             grid.appendChild(slotElement);
         });
@@ -779,7 +857,11 @@ function init() {
     setupRealtimeListener();
     
     // Initialize status (this will also trigger initial render)
-    initializeStatus();
+    // Wait a bit for Firebase to be ready
+    setTimeout(() => {
+        console.log('Initializing status...');
+        initializeStatus();
+    }, 200);
     
     // Render floor filters
     renderFloorFilters();
