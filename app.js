@@ -287,6 +287,19 @@ function setupRealtimeListener() {
         console.warn('Firebase listener error:', error);
     });
     
+    // Also sync the owners map in real time
+    const ownersKey = getOwnersKey();
+    const ownersRef = database.ref(`parking_owners/${ownersKey}`);
+    ownersRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            localStorage.setItem(ownersKey, JSON.stringify(data));
+        }
+        renderParking();
+    }, (error) => {
+        console.warn('Firebase owners listener error:', error);
+    });
+
     console.log('Real-time listener active');
 }
 
@@ -366,6 +379,39 @@ function trackEvent(eventName, params = {}) {
     }
 }
 
+// --- Ownership helpers ---
+
+function getOwnersKey() {
+    return 'parking_owners_' + new Date().toDateString();
+}
+
+function getOwners() {
+    const stored = localStorage.getItem(getOwnersKey());
+    return stored ? JSON.parse(stored) : {};
+}
+
+function saveOwners(owners) {
+    localStorage.setItem(getOwnersKey(), JSON.stringify(owners));
+    if (typeof database !== 'undefined') {
+        database.ref(`parking_owners/${getOwnersKey()}`).set(owners).catch(e =>
+            console.warn('Firebase owners write error:', e)
+        );
+    }
+}
+
+function showToast(message) {
+    const existing = document.getElementById('parkingToast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.id = 'parkingToast';
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+}
+
+// --- End ownership helpers ---
+
 // Toggle slot status
 function toggleSlot(floor, slotNumber) {
     console.log('toggleSlot called:', floor, slotNumber);
@@ -413,31 +459,42 @@ function toggleSlot(floor, slotNumber) {
         }
         
         console.log(`Current status for ${slotKey}: ${oldStatus} (type: ${typeof currentStatus}, extracted as string: ${typeof oldStatus})`);
-        
-        // Toggle between free and occupied (assigned slots can also be toggled)
-        let newStatus;
-        if (oldStatus === 'free') {
-            newStatus = 'occupied';
-        } else if (oldStatus === 'occupied') {
-            // When freed, always become green (free), regardless of original assignment
-            newStatus = 'free';
-        } else {
-            // Fallback
-            newStatus = 'free';
-        }
-        
-        console.log(`Toggling ${slotKey}: ${oldStatus} -> ${newStatus}`);
-        
-        // Always save as string format (revert to original format)
-        status[slotKey] = newStatus;
-        console.log('Status updated:', slotKey, '=', newStatus);
-        
-        // Get slot info for analytics
+
+        // Get slot info (for ownership check and analytics)
         const processedFloors = processParkingData();
         const slot = processedFloors
             .find(f => f.floor === floor)
             ?.slots.find(s => s.number === slotNumber);
-        
+
+        // Ownership check: only the owner can release an occupied spot
+        const owners = getOwners();
+        if (oldStatus === 'occupied') {
+            const userName = localStorage.getItem('userName') || '';
+            const currentOwner = owners[slotKey] || null;
+            const effectiveOwner = currentOwner || (slot?.assigned ? slot?.name : null);
+            if (effectiveOwner && effectiveOwner.toLowerCase() !== userName.toLowerCase()) {
+                showToast(`This spot belongs to ${anonymizeName(effectiveOwner)}`);
+                return;
+            }
+        }
+
+        // Toggle between free and occupied
+        let newStatus;
+        if (oldStatus === 'free') {
+            newStatus = 'occupied';
+            owners[slotKey] = localStorage.getItem('userName') || 'Unknown';
+        } else {
+            // When freed, always become green (free)
+            newStatus = 'free';
+            delete owners[slotKey];
+        }
+
+        console.log(`Toggling ${slotKey}: ${oldStatus} -> ${newStatus}`);
+
+        // Save as string format
+        status[slotKey] = newStatus;
+        console.log('Status updated:', slotKey, '=', newStatus);
+
         // Track analytics with anonymized name
         const assignedTo = slot?.name ? anonymizeName(slot.name) : null;
         // Ensure we're passing strings, not objects, to analytics
@@ -452,6 +509,7 @@ function toggleSlot(floor, slotNumber) {
             assigned_to: assignedTo
         });
         
+        saveOwners(owners);
         saveStatus(status);
         console.log('Status saved, re-rendering...');
         
@@ -477,6 +535,11 @@ function resetAll() {
             });
             
             saveStatus(status);
+            // Clear owners map too
+            localStorage.removeItem(getOwnersKey());
+            if (typeof database !== 'undefined') {
+                database.ref(`parking_owners/${getOwnersKey()}`).remove().catch(e => console.warn(e));
+            }
             // renderParking() will be called automatically by real-time listener if Firebase is active
             if (typeof database === 'undefined') {
                 renderParking();
@@ -755,7 +818,7 @@ function renderStatusBadge(status) {
 }
 
 // Render parking slot card
-function renderParkingSlot(floor, slot, status) {
+function renderParkingSlot(floor, slot, status, owner) {
     // Validate and normalize status
     let normalizedStatus = status;
     if (typeof status !== 'string') {
@@ -788,8 +851,8 @@ function renderParkingSlot(floor, slot, status) {
     console.log(`  - Has 'free' class: ${slotElement.classList.contains('free')}`);
     console.log(`  - Has 'occupied' class: ${slotElement.classList.contains('occupied')}`);
     
-    // Anonymize name for display (privacy)
-    const displayName = slot.name ? anonymizeName(slot.name) : null;
+    // Anonymize name for display — assigned name takes priority, then dynamic owner
+    const displayName = slot.name ? anonymizeName(slot.name) : (owner ? anonymizeName(owner) : null);
     
     // Create content wrapper for proper spacing
     const contentWrapper = document.createElement('div');
@@ -934,8 +997,9 @@ function renderParking() {
                 
                 group.forEach(slot => {
                     const status = getSlotStatus(floor.floor, slot.number, slot.assigned);
+                    const owner = getOwners()[`${floor.floor}_${slot.number}`] || null;
                     console.log(`Rendering slot ${floor.floor}_${slot.number}: status=${status}, assigned=${slot.assigned}`);
-                    const slotElement = renderParkingSlot(floor.floor, slot, status);
+                    const slotElement = renderParkingSlot(floor.floor, slot, status, owner);
                     slotsContainer.appendChild(slotElement);
                 });
                 
@@ -947,8 +1011,9 @@ function renderParking() {
         // Render regular slots
         regular.forEach(slot => {
             const status = getSlotStatus(floor.floor, slot.number, slot.assigned);
+            const owner = getOwners()[`${floor.floor}_${slot.number}`] || null;
             console.log(`Rendering slot ${floor.floor}_${slot.number}: status=${status}, assigned=${slot.assigned}`);
-            const slotElement = renderParkingSlot(floor.floor, slot, status);
+            const slotElement = renderParkingSlot(floor.floor, slot, status, owner);
             grid.appendChild(slotElement);
         });
 
@@ -982,7 +1047,7 @@ function checkDailyReset() {
         // New day - clear old data
         const keys = Object.keys(localStorage);
         keys.forEach(key => {
-            if (key.startsWith('parking_status_')) {
+            if (key.startsWith('parking_status_') || key.startsWith('parking_owners_')) {
                 localStorage.removeItem(key);
             }
         });
@@ -991,68 +1056,105 @@ function checkDailyReset() {
     }
 }
 
-// Initialize app
-function init() {
-    updateDateDisplay();
-    
-    // Check first visit and open modal
+// Show the name prompt modal and wire up its submit handler
+function showNameModal() {
+    const modal = document.getElementById('nameModal');
+    if (modal) modal.classList.add('active');
+
+    const nameInput = document.getElementById('nameInput');
+    const nameSubmitBtn = document.getElementById('nameSubmitBtn');
+
+    function submitName() {
+        const name = (nameInput ? nameInput.value : '').trim();
+        if (!name) {
+            if (nameInput) nameInput.focus();
+            return;
+        }
+        localStorage.setItem('userName', name);
+        if (modal) modal.classList.remove('active');
+        continueInit();
+    }
+
+    if (nameSubmitBtn) nameSubmitBtn.addEventListener('click', submitName);
+    if (nameInput) {
+        nameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') submitName();
+        });
+        setTimeout(() => nameInput.focus(), 100);
+    }
+}
+
+// Main initialization (runs after name is confirmed)
+function continueInit() {
+    // Track first visit
     if (isFirstVisit()) {
         trackEvent('first_visit');
         markAsVisited();
-        // Open modal on first visit
-        setTimeout(() => openModal(), 300);
     }
-    
+
     // Track app load
     trackEvent('app_loaded');
-    
+
     // Setup real-time listener first (if Firebase is available)
     setupRealtimeListener();
-    
+
     // Initialize status (this will also trigger initial render)
     // Wait a bit for Firebase to be ready
     setTimeout(() => {
         console.log('Initializing status...');
         initializeStatus();
     }, 200);
-    
+
     // Render floor filters
     renderFloorFilters();
-    
+
     // Set up modal handlers
     const infoIcon = document.getElementById('infoIcon');
     if (infoIcon) {
         infoIcon.addEventListener('click', openModal);
     }
-    
+
     const modalClose = document.getElementById('modalClose');
     if (modalClose) {
         modalClose.addEventListener('click', closeModal);
     }
-    
+
     const modalOverlay = document.getElementById('modalOverlay');
     if (modalOverlay) {
         modalOverlay.addEventListener('click', closeModal);
     }
-    
+
     // Close modal on Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeModal();
         }
     });
-    
+
     // Set up hide occupied checkbox
     const hideOccupiedCheckbox = document.getElementById('hideOccupiedCheckbox');
     if (hideOccupiedCheckbox) {
         hideOccupiedCheckbox.addEventListener('change', applyOccupiedFilter);
     }
-    
+
     // Check for daily reset every minute
     setInterval(checkDailyReset, 60000);
-    
+
     // Initial daily reset check
     checkDailyReset();
+}
+
+// Initialize app
+function init() {
+    updateDateDisplay();
+
+    // Show name prompt if name not yet set
+    if (!localStorage.getItem('userName')) {
+        showNameModal();
+        return; // continueInit() will be called after name is submitted
+    }
+
+    continueInit();
 }
 
 // Start app when DOM is ready

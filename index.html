@@ -63,6 +63,21 @@
                 </div>
             </div>
         </div>
+
+        <!-- Name prompt modal (shown on first visit, before userName is set) -->
+        <div class="modal" id="nameModal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Welcome</h2>
+                </div>
+                <div class="modal-body name-prompt-body">
+                    <p>Enter your name so colleagues can see who parked where.</p>
+                    <input type="text" id="nameInput" class="name-input" placeholder="Your name" maxlength="40" autocomplete="given-name" />
+                    <button class="name-submit-btn" id="nameSubmitBtn">Start</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="firebase-config.js"></script>
