@@ -8,7 +8,7 @@
 // 4. Copy the config values below
 
 const firebaseConfig = {
-    apiKey: "AIzaSyC00mFm9T4_yId1Z5e7uNgJFuB7thEBLJM",
+    apiKey: "AIzaSyDSdnv1Tm38bG56XWsv0sgBnyXqRrMRsUo",
     authDomain: "dtparking.firebaseapp.com",
     databaseURL: "https://dtparking-default-rtdb.firebaseio.com", // or your region-specific URL
     projectId: "dtparking",
