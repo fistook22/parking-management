@@ -1075,8 +1075,12 @@ function showNameModal() {
         continueInit();
     }
 
-    if (nameSubmitBtn) nameSubmitBtn.addEventListener('click', submitName);
+    if (nameSubmitBtn) {
+        nameSubmitBtn.removeEventListener('click', submitName);
+        nameSubmitBtn.addEventListener('click', submitName);
+    }
     if (nameInput) {
+        nameInput.removeEventListener('keydown', submitName);
         nameInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') submitName();
         });
